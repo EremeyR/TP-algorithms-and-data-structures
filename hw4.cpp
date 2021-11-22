@@ -1,4 +1,5 @@
 #include <iostream>
+#include <sstream>
 #include <cassert>
 
 template <class T>
@@ -63,30 +64,36 @@ private:
     size_t* arrays_length = nullptr;
 };
 
-int main() {
-    Sort<size_t, IsLessDefault<size_t>> sort;
+int run(std::istream& input, std::ostream& output) {
+    Sort<int64_t , IsLessDefault<int64_t>> sort;
 
     size_t number_of_arrays = 0;
-    std::cin >> number_of_arrays;
+    input >> number_of_arrays;
     sort.SetNumberOfArrays(number_of_arrays);
 
     size_t array_length = 0;
-    size_t value = 0;
+    int64_t value = 0;
     for (size_t i = 0; i < number_of_arrays; ++i) {
-        std::cin >> array_length;
+        input >> array_length;
         sort.SetArraySize(i, array_length);
         for (size_t j = 0; j < array_length; ++j) {
-            std::cin >> value;
+            input >> value;
             sort.AddValue(i, j, value);
         }
     }
-    const size_t* result;
+    const int64_t* result;
     size_t result_size = 0;
     result = sort.GetResult(result_size);
     for (int i = 0; i < result_size; ++i) {
-        std::cout << result[i] << " ";
+        output << result[i] << " ";
     }
 
+    return 0;
+}
+
+int main() {
+    //Tests();
+    run(std::cin, std::cout);
     return 0;
 }
 
@@ -94,7 +101,7 @@ template<class T, class IsLess>
 void Heap<T, IsLess>::GrowBuffers() {
     size_t new_size = (buffers_size == 0) ? 1 : buffers_size * 2;
     T* new_buffer = new T[new_size];
-    auto* new_id_buffer = new T[new_size];
+    auto* new_id_buffer = new size_t[new_size];
 
     for (size_t i = 0; i < buffers_size; ++i) {
         new_buffer[i] = buffer[i];
@@ -145,9 +152,9 @@ T Heap<T, IsLess>::ExtractMax(size_t* id) {
     *id = id_buffer[0];
     buffer[0] = buffer[heap_size - 1];
     id_buffer[0] = id_buffer[heap_size - 1];
-    SiftUp(heap_size - 1);
-
     --heap_size;
+
+    SiftDown(0);
     return max;
 }
 
@@ -160,7 +167,7 @@ void Heap<T, IsLess>::SiftDown(size_t position) {
         if (left < heap_size && is_less(buffer[largest], buffer[left])) {
             largest = left;
         }
-        if (right < heap_size && is_less(buffer[largest], buffer[left])) {
+        if (right < heap_size && is_less(buffer[largest], buffer[right])) {
             largest = right;
         }
         if (largest != position) {
@@ -232,7 +239,6 @@ template<class T, class IsLess>
 void Sort<T, IsLess>::SetArraySize(size_t number_of_array, size_t size) {
     assert(number_of_array <= number_of_arrays);
     assert(arrays_buffer != nullptr);
-    assert(arrays_length[number_of_array] == 0);
 
     arrays_buffer[number_of_array] = new T[size];
     arrays_length[number_of_array] = size;

@@ -144,7 +144,6 @@ void Tests() {
         run(input, output);
         assert(output.str() == "1 1");
     }
-
 }
 
 int main() {

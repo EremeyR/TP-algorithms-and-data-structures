@@ -17,6 +17,7 @@
 
 #include <iostream>
 #include <cassert>
+#include <sstream>
 
 template<class T>
 class Deque {
@@ -44,17 +45,17 @@ private:
     void Reduce();
 };
 
-int main() {
+int run(std::istream& input, std::ostream& output) {
     Deque<size_t> deque;
 
     size_t number_of_commands = 0;
-    std::cin >> number_of_commands;
+    input >> number_of_commands;
 
     bool is_success = true;
     for (size_t i = 0; i < number_of_commands; ++i) {
         size_t command = 0;
         size_t value = 0;
-        std::cin >> command >> value;
+        input >> command >> value;
         switch (command) {
             case 1:
                 deque.PushFront(value);
@@ -77,7 +78,56 @@ int main() {
         }
     }
 
-    std::cout << (is_success ? "YES" : "NO");
+    output << (is_success ? "YES" : "NO");
+    return 0;
+}
+
+void Tests() {
+//    {
+//        std::stringstream input;
+//        std::stringstream output;
+//        input << "3 " << "1 44 " << "3 50 " << "2 44 ";
+//        run(input, output);
+//        assert(output.str() == "YES");
+//    }
+
+    {
+        std::stringstream input;
+        std::stringstream output;
+        input << "4 " << "1 44 " << "3 50 " << "2 44 " << "2 44 ";
+        run(input, output);
+        assert(output.str() == "NO");
+    }
+
+    {
+        std::stringstream input;
+        std::stringstream output;
+        input << "4 " << "1 44 " << "3 50 " << "2 44 " << "2 50 ";
+        run(input, output);
+        assert(output.str() == "YES");
+    }
+
+    {
+        std::stringstream input;
+        std::stringstream output;
+        input << "4 " << "1 44 " << "3 50 " << "2 44 " << "4 50 ";
+        run(input, output);
+        assert(output.str() == "YES");
+    }
+
+    {
+        std::stringstream input;
+        std::stringstream output;
+        input << "5 " << "1 44 " << "3 50 " << "2 44 " << "4 50 " << "2 44 ";
+        run(input, output);
+        assert(output.str() == "NO");
+    }
+
+}
+
+int main() {
+    //Tests();
+    run(std::cin, std::cout);
     return 0;
 }
 
@@ -98,12 +148,14 @@ void Deque<T>::Grow() {
             }
             new_buffer[new_i] = buffer[old_i];
         }
+    } else {
+        back = 1;
     }
 
     delete[] buffer;
     buffer = new_buffer;
     front = 0;
-    back = buffer_size;
+    back = (buffer_size == 0) ? 1 : buffer_size;
     buffer_size = new_size;
 }
 
@@ -133,13 +185,15 @@ bool Deque<T>::IsEmpty() {
 
 template<class T>
 T Deque<T>::PopFront() {
+    T value = static_cast<T>(-1);
     if (IsEmpty()) {
-        return static_cast<T>(-1);
+        return value;
     } else {
-        size_t old_front = front;
+        value = buffer[front];
         if (Size() == 1) {
             front = 0;
             back = 0;
+
         } else {
             front = (front == buffer_size - 1) ? 0 : front + 1;
         }
@@ -147,16 +201,17 @@ T Deque<T>::PopFront() {
         if (buffer_size / 4 >= Size()) {
             Reduce();
         }
-        return buffer[old_front];
+        return value;
     }
 }
 
 template<class T>
 T Deque<T>::PopBack() {
+    T value = static_cast<T>(-1);
     if (IsEmpty()) {
-        return static_cast<T>(-1);
+        return value;
     } else {
-        size_t old_back = back;
+        value = buffer[back - 1];
         if (Size() == 1) {
             front = 0;
             back = 0;
@@ -167,7 +222,8 @@ T Deque<T>::PopBack() {
         if (buffer_size / 4 >= Size()) {
             Reduce();
         }
-        return buffer[old_back - 1];
+
+        return value;
     }
 }
 

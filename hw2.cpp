@@ -8,6 +8,7 @@
 // бинарный поиск.
 
 #include <iostream>
+#include <sstream>
 #include "string"
 #include <cstring>
 #include <cassert>
@@ -36,38 +37,121 @@ private:
     size_t ExponentialSearch(const T& value) const;
     size_t BinarySearch(size_t boundary, const T &value) const;
 
-    size_t* result_array = nullptr;
+    T* result_array = nullptr;
 
     void Grow(T** array, size_t& size);
 
     void CalculateResult();
 };
 
-int main() {
+int run(std::istream& input, std::ostream& output) {
     size_t first_array_size = 0;
     size_t second_array_size = 0;
-    std::cin >> first_array_size >> second_array_size;
+    input >> first_array_size >> second_array_size;
 
-    MinimumIndexes<size_t> minimum_indexes;
-    size_t value = 0;
+    MinimumIndexes<int64_t> minimum_indexes;
+    int64_t value = 0;
     for(size_t i = 0; i < first_array_size; ++i) {
-        std::cin >> value;
+        input >> value;
         minimum_indexes.AddToFirstArray(value);
     }
 
     for(size_t i = 0; i < second_array_size; ++i) {
-        std::cin >> value;
+        input >> value;
         minimum_indexes.AddToSecondArray(value);
     }
     size_t array_size = 0;
-    size_t* result_array = minimum_indexes.GetResultArray(array_size);
+    int64_t* result_array = minimum_indexes.GetResultArray(array_size);
 
-    for (size_t i = 0; i < array_size; ++i) {
-        std::cout << result_array[i] << " ";
+    if (array_size != 0) {
+        output << result_array[0];
+    }
+    for (size_t i = 1; i < array_size; ++i) {
+        output  << " " << result_array[i];
     }
     return 0;
 }
 
+void Tests() {
+    {
+        std::stringstream input;
+        std::stringstream output;
+        input << "2 1 " << "1 2 " << "2";
+        run(input, output);
+        assert(output.str() == "1");
+    }
+
+    {
+        std::stringstream input;
+        std::stringstream output;
+        input << "4 3 " << "2 4 5 7 " << "4 6 1";
+        run(input, output);
+        assert(output.str() == "1 3 0");
+    }
+
+    {
+        std::stringstream input;
+        std::stringstream output;
+        input << "4 3 " << "2 3 4 5 " << "2 2 2";
+        run(input, output);
+        assert(output.str() == "0 0 0");
+    }
+
+    {
+        std::stringstream input;
+        std::stringstream output;
+        input << "4 3 " << "2 3 4 5 " << "9 5 2";
+        run(input, output);
+        assert(output.str() == "4 3 0");
+    }
+
+    {
+        std::stringstream input;
+        std::stringstream output;
+        input << "1 1 " << "1 " << "1";
+        run(input, output);
+        assert(output.str() == "0");
+    }
+
+    {
+        std::stringstream input;
+        std::stringstream output;
+        input << "1 1 " << "10 " << "1";
+        run(input, output);
+        assert(output.str() == "0");
+    }
+
+    {
+        std::stringstream input;
+        std::stringstream output;
+        input << "1 1 " << "10 " << "100";
+        run(input, output);
+        assert(output.str() == "1");
+    }
+
+    {
+        std::stringstream input;
+        std::stringstream output;
+        input << "1 2 " << "10 " << "100 1";
+        run(input, output);
+        assert(output.str() == "1 0");
+    }
+
+    {
+        std::stringstream input;
+        std::stringstream output;
+        input << "1 2 " << "-10 " << "100 1";
+        run(input, output);
+        assert(output.str() == "1 1");
+    }
+
+}
+
+int main() {
+    //Tests();
+    run(std::cin, std::cout);
+    return 0;
+}
 
 template<class T>
 void MinimumIndexes<T>::AddToFirstArray(const T &value) {
@@ -120,7 +204,6 @@ void MinimumIndexes<T>::CalculateResult() {
     for (size_t i = 0; i < second_array_size; ++i) {
         size_t boundary = ExponentialSearch(second_array[i]);
         result_array[i] = BinarySearch(boundary, second_array[i]);
-        assert(result_array[i] != first_array_size);
     }
 }
 

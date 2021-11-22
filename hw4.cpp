@@ -127,8 +127,8 @@ void Heap<T, IsLess>::Add(const T &value, size_t id) {
 
 template<class T, class IsLess>
 Heap<T, IsLess>::~Heap() {
-    free(buffer);
-    free(id_buffer);
+    delete[] buffer;
+    delete[] id_buffer;
 }
 
 template<class T, class IsLess>
@@ -145,7 +145,7 @@ T Heap<T, IsLess>::ExtractMax(size_t* id) {
     *id = id_buffer[0];
     buffer[0] = buffer[heap_size - 1];
     id_buffer[0] = id_buffer[heap_size - 1];
-    SiftUp(buffer[heap_size - 1]);
+    SiftUp(heap_size - 1);
 
     --heap_size;
     return max;

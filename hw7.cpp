@@ -1,5 +1,6 @@
 #include <iostream>
 #include <cassert>
+#include <sstream>
 
 class MSE {
 public:
@@ -20,10 +21,10 @@ public:
 
 
 private:
-    size_t sort_buf_size = 27; //// 26 букв + '\0'
+    size_t sort_buf_size = 27; // 26 букв + '\0'
 
-    std::string* buffer = nullptr;
-    size_t* indexes_array = nullptr;
+    std::string* buffer = nullptr;  //  буфер для хранения слов
+    size_t* indexes_array = nullptr;  // буфер для хранения индексов отсортированных слов
 
     size_t buffers_size = 0;
     size_t real_size = 0;
@@ -74,7 +75,7 @@ size_t MSE::GetPosition(char value) const {
     assert(static_cast<size_t>(value) >= static_cast<size_t>('a'));
     assert(static_cast<size_t>(value) <= static_cast<size_t>('z'));
 
-    return (static_cast<size_t>(value) + 1) - static_cast<size_t>('a');
+    return (static_cast<size_t>(value) + 1) - static_cast<size_t>('a');  //  возвращаем позицию буквы в алфавите
 }
 
 void MSE::Sort(const int64_t start_pos, const int64_t end_pos, const size_t char_number, size_t* sort_buf) {
@@ -110,7 +111,7 @@ void MSE::Sort(const int64_t start_pos, const int64_t end_pos, const size_t char
         int64_t index_position =
                 --(sort_buf[temp_position]);
        // indexes_array[start_pos + index_position] = i;      //  смещаем на нужный участок
-        temp_indexes[index_position] = indexes_array[i];
+        temp_indexes[index_position] = indexes_array[i];   //////////////////////////////////// большая ошибка
     }
 
     for (int i = 0; i < end_pos - start_pos; ++i) {
@@ -143,8 +144,8 @@ void MSE::Sort(const int64_t start_pos, const int64_t end_pos, const size_t char
 }
 
 const std::string *MSE::GetSorted(const size_t& size) {
-    InitIndexesArray();
-    auto* sort_buf = new size_t[sort_buf_size];
+    InitIndexesArray(); // для неотсортированного массива "расставим" слова в порядке вхождения
+    auto* sort_buf = new size_t[sort_buf_size];  // буфер для записи количества вхождений слов
     Sort(0, real_size, 0, sort_buf);
     delete[] sort_buf;
     return nullptr;
@@ -156,16 +157,17 @@ void MSE::InitIndexesArray() {
     }
 }
 
-int main() {
+int run(std::istream& input, std::ostream& output) {
     MSE mse;
-    mse.Add("aaaa");
-    mse.Add("a");
-    mse.Add("baaaaaa");
-    mse.Add("aa");
-    mse.Add("ea");
-    mse.Add("ee");
-    mse.Add("baaaaag");
-    mse.Add("aa");
+    std::string word;
+//    for (int i = 0; i < 4; ++i) {
+//        input >> word;
+//        mse.Add(word);
+//    }
+
+    while (input >> word) {
+        mse.Add(word);
+    }
 
     //mse.a();
 
@@ -174,5 +176,24 @@ int main() {
     mse.GetSorted(size);
     mse.a();
 
+    return 0;
+}
+
+void Tests() {
+    {
+        std::stringstream input;
+        std::stringstream output;
+        input << "ertf\n"
+              << "qwsdf\n"
+              << "err\n"
+              << "all";
+        run(input, output);
+        //assert(output.str() == "3");
+    }
+}
+
+int main() {
+    Tests();
+    //run(std::cin, std::cout);
     return 0;
 }

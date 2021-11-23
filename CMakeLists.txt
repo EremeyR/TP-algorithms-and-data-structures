@@ -14,3 +14,5 @@ add_executable(${PROJECT_NAME}_4 hw4.cpp)
 add_executable(${PROJECT_NAME}_5 hw5.cpp)
 
 add_executable(${PROJECT_NAME}_6 hw6.cpp)
+
+add_executable(${PROJECT_NAME}_7 hw7.cpp)

@@ -55,7 +55,7 @@ void MSE::GrowBuffers() {
 }
 
 void MSE::Add(const std::string& str) {
-    assert(str.size() < 10000 );    // максимальная глубина рекурсии
+    assert(str.size() < 1000);    // максимальная глубина рекурсии
     if (real_size == buffers_size) {
         GrowBuffers();
     }

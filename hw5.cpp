@@ -231,28 +231,34 @@ MaxContemporaries<T, IsLess>::MaxContemporaries(const IsDateLess<Event<T>> &is_l
 
 template<class T, class IsLess>
 void MaxContemporaries<T, IsLess>::Add(const Person<T>& person) {
-    Event<T> coming_of_age;
-    coming_of_age.factor = true;
-    coming_of_age.day = person.birth_day;
-    coming_of_age.month = person.birth_month;
-    coming_of_age.year = person.birth_year + 18;
-    merge_sort.Add(coming_of_age);
+    //  добавляем только доживших до 18
+    if (!is_less({person.death_year,person.death_month,person.death_day},
+                {person.birth_year + 18, person.birth_month, person.birth_day})) {
 
-    Event<T> coming_of_old_age_or_death;
-    coming_of_old_age_or_death.factor = false;
-    coming_of_old_age_or_death.day = person.death_day;
+        Event<T> coming_of_age;
+        coming_of_age.factor = true;
+        coming_of_age.day = person.birth_day;
+        coming_of_age.month = person.birth_month;
+        coming_of_age.year = person.birth_year + 18;
+        merge_sort.Add(coming_of_age);
 
-    if (is_less({person.death_year,person.death_month,person.death_day},
-                {person.birth_year + 80, person.birth_month, person.birth_day})) {
+        Event<T> coming_of_old_age_or_death;
+        coming_of_old_age_or_death.factor = false;
         coming_of_old_age_or_death.day = person.death_day;
-        coming_of_old_age_or_death.month = person.death_month;
-        coming_of_old_age_or_death.year = person.death_year;
-    } else {
-        coming_of_old_age_or_death.day = person.birth_day;
-        coming_of_old_age_or_death.month = person.birth_month;
-        coming_of_old_age_or_death.year = person.birth_year + 80;
+
+
+        if (is_less({person.death_year, person.death_month, person.death_day},
+                    {person.birth_year + 80, person.birth_month, person.birth_day})) {
+            coming_of_old_age_or_death.day = person.death_day;
+            coming_of_old_age_or_death.month = person.death_month;
+            coming_of_old_age_or_death.year = person.death_year;
+        } else {
+            coming_of_old_age_or_death.day = person.birth_day;
+            coming_of_old_age_or_death.month = person.birth_month;
+            coming_of_old_age_or_death.year = person.birth_year + 80;
+        }
+        merge_sort.Add(coming_of_old_age_or_death);
     }
-    merge_sort.Add(coming_of_old_age_or_death);
 }
 
 template<class T, class IsLess>
@@ -265,7 +271,7 @@ size_t MaxContemporaries<T, IsLess>::GetResult() {
 //        std::cout << arr[i].day << ' ' << arr[i].month << ' ' << arr[i].year << ' ' << arr[i].factor << std::endl;
 //    }
 
-    int64_t result = 1;
+    int64_t result = 0;
     int64_t current_value = 0;
     for (int i = 0; i < size; ++i) {
         current_value += arr[i].factor ? 1 : -1;
@@ -442,10 +448,19 @@ void Tests() {
         run(input, output);
         assert(output.str() == "1");
     }
+    {
+        std::stringstream input;
+        std::stringstream output;
+        input << "2 "
+              << "4 3 1030 4 3 1040 "
+              << "3 3 1082 1 1 1099 ";
+        run(input, output);
+        assert(output.str() == "0");
+    }
 }
 
 int main() {
-//    Tests();
+    Tests();
     run(std::cin, std::cout);
     return 0;
 }

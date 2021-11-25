@@ -1,6 +1,11 @@
+// 7_1. MSD для строк.
+// Дан массив строк. Количество строк не больше 105. Отсортировать массив методом поразрядной сортировки MSD по символам.
+// Размер алфавита - 256 символов. Последний символ строки = ‘\0’.
+
 #include <iostream>
 #include <cassert>
 #include <sstream>
+#include <cstring>
 
 class MSE {
 public:
@@ -16,7 +21,6 @@ public:
 
 private:
     const size_t sort_buf_size = 27; // 26 букв + '\0'
-//    int64_t sort_buf[27];  // буфер для записи количества вхождений слов
 
     std::string* buffer = nullptr;  //  буфер для хранения слов
     size_t* indexes_array = nullptr;  // буфер для хранения индексов отсортированных слов
@@ -51,6 +55,7 @@ void MSE::GrowBuffers() {
 }
 
 void MSE::Add(const std::string& str) {
+    assert(str.size() < 10000 );    // максимальная глубина рекурсии
     if (real_size == buffers_size) {
         GrowBuffers();
     }
@@ -80,67 +85,45 @@ void MSE::Sort(const int64_t start_pos, const int64_t end_pos, const size_t char
         return;
     }
 
-    int64_t sort_buf[27] = {0};
+    int64_t sort_buf[sort_buf_size];
+    memset(sort_buf, 0, sort_buf_size*sizeof(int64_t)); //  инициализируем массив для подсчета букв
 
     for(size_t i = start_pos; i < end_pos; ++i) {
         char temp_char = buffer[indexes_array[i]][char_number];
         size_t temp_position = GetPosition(temp_char);
-        ++sort_buf[temp_position]; //  получаем номер позиции буквы
-        //  стоящей на позиции из массива с
-        //  отсортированными индексами и
-        //  повышаем значение соответствующего
+        ++sort_buf[temp_position]; //  получаем номер позиции буквы, стоящей на позиции из массива с
+        //  отсортированными индексами, и повышаем значение соответствующего
         //  элемента в массиве sort_buf[]
     }
 
-    std::cout << sort_buf[0] << " ";
     for(size_t i = 1; i < sort_buf_size; ++i) {
         sort_buf[i] += sort_buf[i - 1];                 // получаем концы участков для записи
-        //std::cout << sort_buf[i] << " ";
     }
-    std::cout << "\n";
 
-
-    auto* temp_indexes = new int64_t[end_pos - start_pos];
+    auto* temp_indexes = new int64_t[end_pos - start_pos]; // временный массив для отсортированного куска массива
     for (int64_t i = end_pos - 1; i >= start_pos; --i) {
         char temp_char = buffer[indexes_array[i]][char_number];
         size_t temp_position = GetPosition(temp_char);
         int64_t index_position = --(sort_buf[temp_position]);
-        temp_indexes[index_position] = indexes_array[i];   //////////////////////////////////// большая ошибка
+        temp_indexes[index_position] = indexes_array[i];  // заполняем отсортированными индексами начального массива
     }
-    //////////////
-    std::cout << sort_buf[0] << " ";
-    for(size_t i = 1; i < sort_buf_size; ++i) {
-        std::cout << sort_buf[i] << " ";
-    }
-    //std::cout << std::endl << temp_indexes[0] << ' ' << temp_indexes[1] << std::endl;
-    std::cout << "\n\n";
-    auto a = temp_indexes[0];
-    auto b = temp_indexes[1];
-    /////////
 
     for (int i = 0; i < end_pos - start_pos; ++i) {
-        indexes_array[start_pos + i] = temp_indexes[i];
+        indexes_array[start_pos + i] = temp_indexes[i]; // изменяем индексы начального массива с учётом сдвига
     }
 
-    for (int i = 0; i < real_size; ++i) {
-        std::cout << i << ' '<< buffer[indexes_array[i]] << std::endl;
-    }   std::cout << "\n";
-    for (int64_t i = sort_buf_size - 1; i >= 2; --i) {
+    for (int64_t i = sort_buf_size - 1; i >= 2; --i) {  //  пытаемся продолжить сортировку для всех участков
+                                                        // кроме участка, начинающегося на '\0', т.к уйдем за
+                                                        // границу массива, и участка, начинающегося на 'z'
         Sort(start_pos + sort_buf[i - 1], start_pos + sort_buf[i], char_number + 1);
     }
-    if (sort_buf[sort_buf_size - 1] != end_pos - start_pos) {
+    if (sort_buf[sort_buf_size - 1] != end_pos - start_pos) { //  пытаемся продолжить сортировку для участка "z"
         Sort(start_pos + sort_buf[sort_buf_size - 1], end_pos, char_number + 1);
     }
     delete[] temp_indexes;
 }
 
 const std::string *MSE::GetSorted(size_t& size) {
-    ///
-    std::cout << 0 << " ";
-    for(size_t i = 0; i < 26; ++i) {  // получаем концы участков для записи
-        std::cout << static_cast<char>(static_cast<size_t>('a') + i)  << " ";
-    }std::cout << "\n";
-    ///
     result = new std::string[real_size];
     InitIndexesArray(); // для неотсортированного массива "расставим" слова в порядке вхождения
     Sort(0, real_size, 0);
@@ -168,7 +151,6 @@ int run(std::istream& input, std::ostream& output) {
         mse.Add(word);
     }
 
-    std::cout << "\n";
     size_t size = 0;
     const std::string* result = mse.GetSorted(size);
 
@@ -199,7 +181,7 @@ void Tests() {
 }
 
 int main() {
-    Tests();
-    //run(std::cin, std::cout);
+    //Tests();
+    run(std::cin, std::cout);
     return 0;
 }

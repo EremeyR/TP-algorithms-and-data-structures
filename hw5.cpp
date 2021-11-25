@@ -106,11 +106,11 @@ private:
 
 template<class T, class IsLess>
 void MergeSort<T, IsLess>::Merge(const T *array1, size_t array1_size, const T *array2, size_t array2_size) {
-    if(array1_size == 0) {
+    if(array1_size == 0) { // если первый массив пустой
         for (int i = 0; i < array2_size; ++i) {
             buffer_for_sort[i] = array2[i];
         }
-    } else if (array2_size == 0) {
+    } else if (array2_size == 0) { // если второй массив пустой
         for (int i = 0; i < array1_size; ++i) {
             buffer_for_sort[i] = array1[i];
         }
@@ -126,14 +126,13 @@ void MergeSort<T, IsLess>::Merge(const T *array1, size_t array1_size, const T *a
             buffer_for_sort[k] = array2[j];
             j++;
         }
-//        T a = buffer[0];
 
-        if (i == array1_size) {
+        if (i == array1_size) {  // если первый массив кончился
             while (j != array2_size) {
                 buffer_for_sort[++k] = array2[j++];
             }
             return;
-        } else if (j == array2_size) {
+        } else if (j == array2_size) { // если второй массив кончился
             while (i != array2_size) {
                 ++k;
                 buffer_for_sort[k] = array1[i];
@@ -191,6 +190,7 @@ void MergeSort<T, IsLess>::Sort(T *array, size_t array_size) {
     size_t left_array_size = array_size / 2;
     size_t right_array_size = array_size - left_array_size;
 
+    // глубина рекурсии меньше 1000 при длине массива < 2^1000 (~10^300)
     Sort(array, left_array_size);
     Sort(array + left_array_size, right_array_size);
 
@@ -236,17 +236,16 @@ void MaxContemporaries<T, IsLess>::Add(const Person<T>& person) {
                 {person.birth_year + 18, person.birth_month, person.birth_day})) {
 
         Event<T> coming_of_age;
-        coming_of_age.factor = true;
+        coming_of_age.factor = true; //  "положительное" влияние
         coming_of_age.day = person.birth_day;
         coming_of_age.month = person.birth_month;
         coming_of_age.year = person.birth_year + 18;
         merge_sort.Add(coming_of_age);
 
         Event<T> coming_of_old_age_or_death;
-        coming_of_old_age_or_death.factor = false;
-        coming_of_old_age_or_death.day = person.death_day;
+        coming_of_old_age_or_death.factor = false; //  "отрицательное" влияние
 
-
+        // добавляем либо дату смерти, либо дату восьмидесятилетия
         if (is_less({person.death_year, person.death_month, person.death_day},
                     {person.birth_year + 80, person.birth_month, person.birth_day})) {
             coming_of_old_age_or_death.day = person.death_day;
@@ -266,10 +265,6 @@ size_t MaxContemporaries<T, IsLess>::GetResult() {
     const Event<size_t>* arr;
     size_t size;
     arr = merge_sort.GetSortedArray(size);
-
-//    for (int i = 0; i < size; ++i) {
-//        std::cout << arr[i].day << ' ' << arr[i].month << ' ' << arr[i].year << ' ' << arr[i].factor << std::endl;
-//    }
 
     int64_t result = 0;
     int64_t current_value = 0;
@@ -307,160 +302,7 @@ int run(std::istream& input, std::ostream& output) {
     return 0;
 }
 
-void Tests() {
-    {
-        std::stringstream input;
-        std::stringstream output;
-        input << "3 "
-        << "2 5 1980 13 11 2055 "
-        << "1 1 1982 1 1 2030 "
-        << "2 1 1920 2 1 2000";
-        run(input, output);
-        assert(output.str() == "3");
-    }
-
-    {
-        std::stringstream input;
-        std::stringstream output;
-        input << "1 "
-              << "2 5 1980 13 11 2055 ";
-        run(input, output);
-        assert(output.str() == "1");
-    }
-
-    {
-        std::stringstream input;
-        std::stringstream output;
-        input << "2 "
-                << "1 1 1982 1 1 2030 "
-                << "2 1 2020 2 1 2050";
-        run(input, output);
-        assert(output.str() == "1");
-    }
-
-    {
-        std::stringstream input;
-        std::stringstream output;
-        input << "2 "
-              << "1 1 1922 1 1 2030 "
-              << "1 1 2012 2 1 2050";
-        run(input, output);
-        assert(output.str() == "1");
-    }
-
-    {
-        std::stringstream input;
-        std::stringstream output;
-        input << "3 "
-              << "1 1 1922 1 1 2031 "
-              << "1 1 2012 2 1 2050 "
-              << "1 1 2040 2 1 2080";
-        run(input, output);
-        assert(output.str() == "1");
-    }
-    {
-        std::stringstream input;
-        std::stringstream output;
-        input << "6 "
-              << "1 1 1922 1 1 2031 "
-              << "1 1 2012 2 1 2050 "
-              << "1 1 2040 2 1 2080 "
-              << "1 1 1922 1 1 2031 "
-              << "1 1 2012 2 1 2050 "
-              << "1 1 2040 2 1 2080";
-        run(input, output);
-        assert(output.str() == "2");
-    }
-    {
-        std::stringstream input;
-        std::stringstream output;
-        input << "4 "
-              << "1 3 1992 3 1 2031 "
-              << "1 2 1992 1 1 2031 "
-              << "1 1 1992 2 1 2031 "
-              << "1 1 1992 1 1 2031 ";
-        run(input, output);
-        assert(output.str() == "4");
-    }
-
-    {
-        std::stringstream input;
-        std::stringstream output;
-        input << "2 "
-              << "1 3 1992 3 1 2030 "
-              << "3 1 2012 1 1 2031 ";
-        run(input, output);
-        assert(output.str() == "1");
-    }
-
-    {
-        std::stringstream input;
-        std::stringstream output;
-        input << "2 "
-              << "4 3 1900 3 2 2000 "
-              << "4 3 1962 1 1 2031 ";
-        run(input, output);
-        assert(output.str() == "1");
-    }
-
-    {
-        std::stringstream input;
-        std::stringstream output;
-        input << "2 "
-              << "4 3 1900 2 3 1980 "
-              << "2 3 1962 1 1 2031 ";
-        run(input, output);
-        assert(output.str() == "1");
-    }
-
-    {
-        std::stringstream input;
-        std::stringstream output;
-        input << "10 "
-              << "4 3 1000 2 3 1070 "
-              << "1 3 1062 1 1 1099 "
-              << "4 3 1000 2 3 1070 "
-              << "1 3 1062 1 1 1099 "
-              << "4 3 1000 2 3 1070 "
-              << "1 3 1062 1 1 1099 "
-              << "4 3 1000 2 3 1070 "
-              << "1 3 1062 1 1 1099 "
-              << "4 3 1000 2 3 1070 "
-              << "1 3 1062 1 1 1099 ";
-        run(input, output);
-        assert(output.str() == "5");
-    }
-
-    {
-        std::stringstream input;
-        std::stringstream output;
-        input << "10 "
-              << "4 3 1000 2 3 1070 "
-              << "1 3 1062 1 1 1099 "
-              << "4 3 1100 2 3 1170 "
-              << "1 3 1162 1 1 1199 "
-              << "4 3 1200 2 3 1270 "
-              << "1 3 1262 1 1 1299 "
-              << "4 3 1300 2 3 1370 "
-              << "1 3 1362 1 1 1399 "
-              << "4 3 1400 2 3 1470 "
-              << "1 3 1462 1 1 1499 ";
-        run(input, output);
-        assert(output.str() == "1");
-    }
-    {
-        std::stringstream input;
-        std::stringstream output;
-        input << "2 "
-              << "4 3 1030 4 3 1040 "
-              << "3 3 1082 1 1 1099 ";
-        run(input, output);
-        assert(output.str() == "0");
-    }
-}
-
 int main() {
-    Tests();
     run(std::cin, std::cout);
     return 0;
 }

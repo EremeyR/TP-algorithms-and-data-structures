@@ -15,10 +15,7 @@
 
 
 #include <iostream>
-#include <cassert>
 #include <sstream>
-#include <ctime>
-#include <unistd.h>
 
 template <class T>
 class IsLessDefault{
@@ -90,7 +87,7 @@ void KStat<T, IsLess>::Add(const T &value, int32_t id) {
 template<class T, class IsLess>
 int32_t KStat<T, IsLess>::GetPivotPos(int32_t left, int32_t right) {
     int middle = left + ((right - 1) - left) / 2;
-    T b = buffer[middle];
+    // находим медиану трех
     if (buffer[left] > buffer[right - 1]) {
         if (buffer[middle] > buffer[left]) {
             return left;
@@ -113,6 +110,7 @@ int32_t KStat<T, IsLess>::Partition(int32_t left, int32_t right) {
     std::swap(buffer[left], buffer[pivot]);
 
     int32_t i = right;
+    // Идем с конца массива, справа от pivot оставляем значения >  buffer[pivot]
     for (int32_t j = right - 1; j >= left; --j) {
         if (is_less(buffer[left], buffer[j])) {
             --i;

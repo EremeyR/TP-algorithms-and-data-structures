@@ -11,13 +11,7 @@ public:
     MSE &operator=(const MSE &) = delete;
 
     void Add(const std::string& str);
-    const std::string* GetSorted(const size_t& size);
-
-    void a (){
-        for (int i = 0; i < real_size; ++i) {
-            std::cout << buffer[indexes_array[i]] << std::endl;
-        }
-    }
+    const std::string* GetSorted(size_t& size);
 
 
 private:
@@ -25,13 +19,14 @@ private:
 
     std::string* buffer = nullptr;  //  буфер для хранения слов
     size_t* indexes_array = nullptr;  // буфер для хранения индексов отсортированных слов
+    std::string* result = nullptr;  //  массив отсортированных слов
 
     size_t buffers_size = 0;
     size_t real_size = 0;
 
     size_t GetPosition(char value) const;
 
-    void Sort(const int64_t start_pos, const int64_t end_pos, const size_t char_number, size_t* sort_buf);
+    void Sort(const int64_t start_pos, const int64_t end_pos, const size_t char_number, int64_t* sort_buf);
     void InitIndexesArray();
     void GrowBuffers();
 };
@@ -65,6 +60,7 @@ void MSE::Add(const std::string& str) {
 MSE::~MSE() {
     delete[] buffer;
     delete[] indexes_array;
+    delete[] result;
 }
 
 size_t MSE::GetPosition(char value) const {
@@ -78,9 +74,9 @@ size_t MSE::GetPosition(char value) const {
     return (static_cast<size_t>(value) + 1) - static_cast<size_t>('a');  //  возвращаем позицию буквы в алфавите
 }
 
-void MSE::Sort(const int64_t start_pos, const int64_t end_pos, const size_t char_number, size_t* sort_buf) {
+void MSE::Sort(const int64_t start_pos, const int64_t end_pos, const size_t char_number, int64_t* sort_buf) {
 
-    auto* temp_indexes = new size_t[end_pos - start_pos];
+    auto* temp_indexes = new int64_t[end_pos - start_pos];
 
     for(size_t i = 0; i < sort_buf_size; ++i ) {
         sort_buf[i] = 0;
@@ -88,7 +84,7 @@ void MSE::Sort(const int64_t start_pos, const int64_t end_pos, const size_t char
 
     for(size_t i = start_pos; i < end_pos; ++i) {
         char temp_char = buffer[indexes_array[i]][char_number];
-        size_t temp_position = GetPosition(buffer[indexes_array[i]][char_number]);
+        size_t temp_position = GetPosition(temp_char);
         ++sort_buf[temp_position]; //  получаем номер позиции буквы
                                    //  стоящей на позиции из массива с
                                    //  отсортированными индексами и
@@ -103,52 +99,56 @@ void MSE::Sort(const int64_t start_pos, const int64_t end_pos, const size_t char
     }
     std::cout << "\n";
 
-    for(int64_t i = end_pos - 1; i >= start_pos; --i) {
+    for (int64_t i = end_pos - 1; i >= start_pos; --i) {
         char temp_char = buffer[indexes_array[i]][char_number];
         size_t temp_position = GetPosition(temp_char);
-//        int64_t index_position =
-//                --sort_buf[GetPosition(buffer[indexes_array[i]][char_number])];  //  позиция для записи
-        int64_t index_position =
-                --(sort_buf[temp_position]);
-       // indexes_array[start_pos + index_position] = i;      //  смещаем на нужный участок
+        int64_t index_position = --(sort_buf[temp_position]);
         temp_indexes[index_position] = indexes_array[i];   //////////////////////////////////// большая ошибка
     }
-
-    for (int i = 0; i < end_pos - start_pos; ++i) {
-        std::cout << temp_indexes[i] << " ";
-    } std::cout << "\n";
+    //////////////
+    std::cout << sort_buf[0] << " ";
+    for(size_t i = 1; i < sort_buf_size; ++i) {
+        std::cout << sort_buf[i] << " ";
+    }
+    std::cout << "\n\n";
+    auto a = temp_indexes[0];
+    auto b = temp_indexes[1];
+    /////////
 
     for (int i = 0; i < end_pos - start_pos; ++i) {
         indexes_array[start_pos + i] = temp_indexes[i];
     }
 
-    for(size_t i = 0; i < sort_buf_size; ++i) {
-        std::cout << sort_buf[i] << " ";
-    }
-    std::cout << "\n";
-
-    for(int64_t i = sort_buf_size - 1; i >= 3; --i) {
+    auto* new_sort_buf = new int64_t[sort_buf_size];  //
+    for (int64_t i = sort_buf_size - 1; i >= 2; --i) {
         if ((sort_buf[i] - sort_buf[i - 1]) > 1) {
-            std::cout << sort_buf[i - 1] << sort_buf[i] << "\n";
-        }
-    }
-
-    auto* new_sort_buf = new size_t[sort_buf_size];  //
-    for(int64_t i = sort_buf_size - 1; i >= 2; --i) {
-        if ((sort_buf[i] - sort_buf[i - 1]) > 1) {
-            Sort(sort_buf[i - 1], sort_buf[i], char_number + 1, new_sort_buf);
+            Sort(start_pos + sort_buf[i - 1], start_pos + sort_buf[i], char_number + 1, new_sort_buf);
         }
     }
     delete[] temp_indexes;
     delete[] new_sort_buf;
 }
 
-const std::string *MSE::GetSorted(const size_t& size) {
+const std::string *MSE::GetSorted(size_t& size) {
+    ///
+    std::cout << 0 << " ";
+    for(size_t i = 0; i < 26; ++i) {  // получаем концы участков для записи
+        std::cout << static_cast<char>(static_cast<size_t>('a') + i)  << " ";
+    }std::cout << "\n";
+    ///
+    result = new std::string[real_size];
     InitIndexesArray(); // для неотсортированного массива "расставим" слова в порядке вхождения
-    auto* sort_buf = new size_t[sort_buf_size];  // буфер для записи количества вхождений слов
+    auto* sort_buf = new int64_t[sort_buf_size];  // буфер для записи количества вхождений слов
     Sort(0, real_size, 0, sort_buf);
+
     delete[] sort_buf;
-    return nullptr;
+
+    for (int i = 0; i < real_size; ++i) {
+        result[i] = buffer[indexes_array[i]];
+    }
+
+    size = real_size;
+    return result;
 }
 
 void MSE::InitIndexesArray() {
@@ -158,24 +158,21 @@ void MSE::InitIndexesArray() {
 }
 
 int run(std::istream& input, std::ostream& output) {
+
     MSE mse;
     std::string word;
-//    for (int i = 0; i < 4; ++i) {
-//        input >> word;
-//        mse.Add(word);
-//    }
 
     while (input >> word) {
         mse.Add(word);
     }
 
-    //mse.a();
-
     std::cout << "\n";
     size_t size = 0;
-    mse.GetSorted(size);
-    mse.a();
+    const std::string* result = mse.GetSorted(size);
 
+    for (int i = 0; i < size; ++i) {
+        std::cout << result[i] << std::endl;
+    }
     return 0;
 }
 
@@ -183,9 +180,12 @@ void Tests() {
     {
         std::stringstream input;
         std::stringstream output;
-        input << "ertf\n"
+        input << "errrtf\n"
               << "qwsdf\n"
-              << "err\n"
+              << "errrrr\n"
+                << "zzzzz\n"
+                << "zzzz\n"
+                << "errrrr\n"
               << "all";
         run(input, output);
         //assert(output.str() == "3");

@@ -27,17 +27,6 @@ struct Event {
 };
 
 template <class T>
-struct Person {             // очень мрачная структура
-    T birth_year = 0;
-    T birth_month = 0;
-    T birth_day = 0;
-
-    T death_year = 0;
-    T death_month = 0;
-    T death_day = 0;
-};
-
-template <class T>
 class IsLessDefault{
 public:
     IsLessDefault() = default;
@@ -73,39 +62,74 @@ bool IsDateLess<T>::operator()(const T &l, const T &r) const {
     }
 
     return l.factor < r.factor;   // считаем, что смерть наступает раньше рождения
-
 }
 
-
 template <class T, class IsLess = IsLessDefault<T>>
-class MergeSort {
-public :
-    explicit MergeSort(const IsLess &is_less = IsLessDefault<T>());
-    MergeSort(const MergeSort &) = delete;
-    ~MergeSort();
+class MaxContemporaries {
+public:
+    explicit MaxContemporaries(const IsDateLess<T> &is_less = IsDateLess<T>());
+    MaxContemporaries(const MaxContemporaries &) = delete;
+    ~MaxContemporaries();
 
-    MergeSort &operator=(const MergeSort &) = delete;
+    MaxContemporaries &operator=(const MaxContemporaries &) = delete;
 
-    void Add(const T& value);
+    void Add(const T& birth, const T& death);
+    size_t GetResult();
 
-    const T* GetSortedArray(size_t& size);
 private:
-    IsLess is_less = IsLessDefault<T>();
+    IsLess is_less = IsDateLess<Event<size_t>>();
 
-    T* buffer = nullptr;
-    T* buffer_for_sort = nullptr;
-    size_t buffers_size = 0;
-    size_t real_size = 0;
+    T* buffer = nullptr;            //  буфер для событий
+    T* buffer_for_sort = nullptr;   // буфер для сортировки
+    size_t buffers_size = 0;        // размер буфера
+    size_t real_size = 0;           // количество событий
 
     void GrowBuffer();
 
-    void Sort(T* array, size_t array_size);
-
+    void MergeSort(T* array, size_t array_size);
     void Merge(const T* array1, size_t array1_size, const T* array2, size_t array2_size);
 };
 
 template<class T, class IsLess>
-void MergeSort<T, IsLess>::Merge(const T *array1, size_t array1_size, const T *array2, size_t array2_size) {
+void MaxContemporaries<T, IsLess>::Add(const T& birth, const T& death) {
+    
+    T coming_of_age = {birth.year + 18, birth.month, birth.day, true};
+    T coming_of_old = {birth.year + 80, birth.month, birth.day, false};
+    T coming_of_death = {death.year, death.month, death.day, false};
+    
+    if (!is_less(coming_of_death, coming_of_age)) {  //  добавляем только доживших до 18
+        if(real_size == buffers_size) {
+            GrowBuffer();
+        }
+        buffer[real_size] = coming_of_age;
+        ++real_size;
+
+        if (is_less(coming_of_death, coming_of_old)) {
+            buffer[real_size] = coming_of_death;
+        } else {
+            buffer[real_size] = coming_of_old;
+        }
+        ++real_size;
+    }
+}
+
+template<class T, class IsLess>
+size_t MaxContemporaries<T, IsLess>::GetResult() {
+    MergeSort(buffer, real_size);
+
+    int64_t result = 0;
+    int64_t current_value = 0;
+    for (int i = 0; i < real_size; ++i) {
+        current_value += buffer[i].factor ? 1 : -1;
+        if (current_value > result) {
+            result = current_value;
+        }
+    }
+    return result;
+}
+
+template<class T, class IsLess>
+void MaxContemporaries<T, IsLess>::Merge(const T *array1, size_t array1_size, const T *array2, size_t array2_size) {
     if(array1_size == 0) { // если первый массив пустой
         for (int i = 0; i < array2_size; ++i) {
             buffer_for_sort[i] = array2[i];
@@ -144,8 +168,8 @@ void MergeSort<T, IsLess>::Merge(const T *array1, size_t array1_size, const T *a
 }
 
 template<class T, class IsLess>
-void MergeSort<T, IsLess>::GrowBuffer() {
-    size_t new_size = (buffers_size == 0) ? 1 : buffers_size * 2;
+void MaxContemporaries<T, IsLess>::GrowBuffer() {
+    size_t new_size = (buffers_size == 0) ? 2 : buffers_size * 2;
     T* new_buffer = new T[new_size];
     T* new_buffer_for_sort = new T[new_size];
 
@@ -162,27 +186,7 @@ void MergeSort<T, IsLess>::GrowBuffer() {
 }
 
 template<class T, class IsLess>
-void MergeSort<T, IsLess>::Add(const T &value) {
-    if (real_size == buffers_size) {
-        GrowBuffer();
-    }
-    buffer[real_size] = value;
-    ++real_size;
-}
-
-template<class T, class IsLess>
-MergeSort<T, IsLess>::MergeSort(const IsLess &is_less)
-        : is_less(is_less) {}
-
-template<class T, class IsLess>
-const T *MergeSort<T, IsLess>::GetSortedArray(size_t& size) {
-    Sort(buffer, real_size);
-    size = real_size;
-    return buffer;
-}
-
-template<class T, class IsLess>
-void MergeSort<T, IsLess>::Sort(T *array, size_t array_size) {
+void MaxContemporaries<T, IsLess>::MergeSort(T *array, size_t array_size) {
     if (array_size <= 1) {
         return;
     }
@@ -191,8 +195,8 @@ void MergeSort<T, IsLess>::Sort(T *array, size_t array_size) {
     size_t right_array_size = array_size - left_array_size;
 
     // глубина рекурсии меньше 1000 при длине массива < 2^1000 (~10^300)
-    Sort(array, left_array_size);
-    Sort(array + left_array_size, right_array_size);
+    MergeSort(array, left_array_size);
+    MergeSort(array + left_array_size, right_array_size);
 
     Merge(array, left_array_size, array + left_array_size, right_array_size);
 
@@ -202,107 +206,194 @@ void MergeSort<T, IsLess>::Sort(T *array, size_t array_size) {
 }
 
 template<class T, class IsLess>
-MergeSort<T, IsLess>::~MergeSort() {
+MaxContemporaries<T, IsLess>::~MaxContemporaries() {
     delete[] buffer;
     delete[] buffer_for_sort;
 }
 
-template <class T, class IsLess = IsLessDefault<T>>
-class MaxContemporaries {
-public:
-    explicit MaxContemporaries(const IsDateLess<Event<T>> &is_less = IsDateLess<Event<size_t>>());
-    MaxContemporaries(const MaxContemporaries &) = delete;
-    ~MaxContemporaries() = default;
-
-    MaxContemporaries &operator=(const MaxContemporaries &) = delete;
-
-    void Add(const Person<T>& person);
-    size_t GetResult();
-
-
-private:
-    MergeSort<Event<T>, IsDateLess<Event<T>>> merge_sort;
-    IsLess is_less = IsDateLess<Event<size_t>>();
-};
-
 template<class T, class IsLess>
-MaxContemporaries<T, IsLess>::MaxContemporaries(const IsDateLess<Event<T>> &is_less)
-        : merge_sort(is_less){}
-
-template<class T, class IsLess>
-void MaxContemporaries<T, IsLess>::Add(const Person<T>& person) {
-    //  добавляем только доживших до 18
-    if (!is_less({person.death_year,person.death_month,person.death_day},
-                {person.birth_year + 18, person.birth_month, person.birth_day})) {
-
-        Event<T> coming_of_age;
-        coming_of_age.factor = true; //  "положительное" влияние
-        coming_of_age.day = person.birth_day;
-        coming_of_age.month = person.birth_month;
-        coming_of_age.year = person.birth_year + 18;
-        merge_sort.Add(coming_of_age);
-
-        Event<T> coming_of_old_age_or_death;
-        coming_of_old_age_or_death.factor = false; //  "отрицательное" влияние
-
-        // добавляем либо дату смерти, либо дату восьмидесятилетия
-        if (is_less({person.death_year, person.death_month, person.death_day},
-                    {person.birth_year + 80, person.birth_month, person.birth_day})) {
-            coming_of_old_age_or_death.day = person.death_day;
-            coming_of_old_age_or_death.month = person.death_month;
-            coming_of_old_age_or_death.year = person.death_year;
-        } else {
-            coming_of_old_age_or_death.day = person.birth_day;
-            coming_of_old_age_or_death.month = person.birth_month;
-            coming_of_old_age_or_death.year = person.birth_year + 80;
-        }
-        merge_sort.Add(coming_of_old_age_or_death);
-    }
-}
-
-template<class T, class IsLess>
-size_t MaxContemporaries<T, IsLess>::GetResult() {
-    const Event<size_t>* arr;
-    size_t size;
-    arr = merge_sort.GetSortedArray(size);
-
-    int64_t result = 0;
-    int64_t current_value = 0;
-    for (int i = 0; i < size; ++i) {
-        current_value += arr[i].factor ? 1 : -1;
-        if (current_value > result) {
-            result = current_value;
-        }
-    }
-    return result;
-}
+MaxContemporaries<T, IsLess>::MaxContemporaries(const IsDateLess<T> &is_less) :
+    is_less(is_less){}
 
 int run(std::istream& input, std::ostream& output) {
     IsDateLess<Event<size_t>> is_date_less;
-    MaxContemporaries<size_t, IsDateLess<Event<size_t>>> max_contemporaries(is_date_less);
+    MaxContemporaries<Event<size_t>, IsDateLess<Event<size_t>>> max_contemporaries(is_date_less);
 
     size_t number_of_persons = 0;
     input >> number_of_persons;
 
-    Person<size_t> great_person;
+    Event<size_t> birth;
+    Event<size_t> death;
 
     for (size_t i = 0; i < number_of_persons; ++i) {
-        input >> great_person.birth_day;
-        input >> great_person.birth_month;
-        input >> great_person.birth_year;
+        input >> birth.day;
+        input >> birth.month;
+        input >> birth.year;
 
-        input >> great_person.death_day;
-        input >> great_person.death_month;
-        input >> great_person.death_year;
+        input >> death.day;
+        input >> death.month;
+        input >> death.year;
 
-        max_contemporaries.Add(great_person);
+        max_contemporaries.Add(birth, death);
     }
 
     output << max_contemporaries.GetResult();
     return 0;
 }
+void Tests() {
+    {
+        std::stringstream input;
+        std::stringstream output;
+        input << "3 "
+              << "2 5 1980 13 11 2055 "
+              << "1 1 1982 1 1 2030 "
+              << "2 1 1920 2 1 2000";
+        run(input, output);
+        assert(output.str() == "3");
+    }
+
+    {
+        std::stringstream input;
+        std::stringstream output;
+        input << "1 "
+              << "2 5 1980 13 11 2055 ";
+        run(input, output);
+        assert(output.str() == "1");
+    }
+
+    {
+        std::stringstream input;
+        std::stringstream output;
+        input << "2 "
+              << "1 1 1982 1 1 2030 "
+              << "2 1 2020 2 1 2050";
+        run(input, output);
+        assert(output.str() == "1");
+    }
+
+    {
+        std::stringstream input;
+        std::stringstream output;
+        input << "2 "
+              << "1 1 1922 1 1 2030 "
+              << "1 1 2012 2 1 2050";
+        run(input, output);
+        assert(output.str() == "1");
+    }
+
+    {
+        std::stringstream input;
+        std::stringstream output;
+        input << "3 "
+              << "1 1 1922 1 1 2031 "
+              << "1 1 2012 2 1 2050 "
+              << "1 1 2040 2 1 2080";
+        run(input, output);
+        assert(output.str() == "1");
+    }
+    {
+        std::stringstream input;
+        std::stringstream output;
+        input << "6 "
+              << "1 1 1922 1 1 2031 "
+              << "1 1 2012 2 1 2050 "
+              << "1 1 2040 2 1 2080 "
+              << "1 1 1922 1 1 2031 "
+              << "1 1 2012 2 1 2050 "
+              << "1 1 2040 2 1 2080";
+        run(input, output);
+        assert(output.str() == "2");
+    }
+    {
+        std::stringstream input;
+        std::stringstream output;
+        input << "4 "
+              << "1 3 1992 3 1 2031 "
+              << "1 2 1992 1 1 2031 "
+              << "1 1 1992 2 1 2031 "
+              << "1 1 1992 1 1 2031 ";
+        run(input, output);
+        assert(output.str() == "4");
+    }
+
+    {
+        std::stringstream input;
+        std::stringstream output;
+        input << "2 "
+              << "1 3 1992 3 1 2030 "
+              << "3 1 2012 1 1 2031 ";
+        run(input, output);
+        assert(output.str() == "1");
+    }
+
+    {
+        std::stringstream input;
+        std::stringstream output;
+        input << "2 "
+              << "4 3 1900 3 2 2000 "
+              << "4 3 1962 1 1 2031 ";
+        run(input, output);
+        assert(output.str() == "1");
+    }
+
+    {
+        std::stringstream input;
+        std::stringstream output;
+        input << "2 "
+              << "4 3 1900 2 3 1980 "
+              << "2 3 1962 1 1 2031 ";
+        run(input, output);
+        assert(output.str() == "1");
+    }
+
+    {
+        std::stringstream input;
+        std::stringstream output;
+        input << "10 "
+              << "4 3 1000 2 3 1070 "
+              << "1 3 1062 1 1 1099 "
+              << "4 3 1000 2 3 1070 "
+              << "1 3 1062 1 1 1099 "
+              << "4 3 1000 2 3 1070 "
+              << "1 3 1062 1 1 1099 "
+              << "4 3 1000 2 3 1070 "
+              << "1 3 1062 1 1 1099 "
+              << "4 3 1000 2 3 1070 "
+              << "1 3 1062 1 1 1099 ";
+        run(input, output);
+        assert(output.str() == "5");
+    }
+
+    {
+        std::stringstream input;
+        std::stringstream output;
+        input << "10 "
+              << "4 3 1000 2 3 1070 "
+              << "1 3 1062 1 1 1099 "
+              << "4 3 1100 2 3 1170 "
+              << "1 3 1162 1 1 1199 "
+              << "4 3 1200 2 3 1270 "
+              << "1 3 1262 1 1 1299 "
+              << "4 3 1300 2 3 1370 "
+              << "1 3 1362 1 1 1399 "
+              << "4 3 1400 2 3 1470 "
+              << "1 3 1462 1 1 1499 ";
+        run(input, output);
+        assert(output.str() == "1");
+    }
+    {
+        std::stringstream input;
+        std::stringstream output;
+        input << "2 "
+              << "4 3 1030 4 3 1040 "
+              << "3 3 1082 1 1 1099 ";
+        run(input, output);
+        assert(output.str() == "0");
+    }
+}
 
 int main() {
-    run(std::cin, std::cout);
+    Tests();
+    //run(std::cin, std::cout);
     return 0;
 }

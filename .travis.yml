@@ -1,0 +1,11 @@
+dist:     focal
+sudo:     required
+language: c
+os: linux
+
+jobs:
+    - stage: Test
+      script:
+        - cmake -B build
+        - make -C build
+        - cd build && valgrind ./module_1_5

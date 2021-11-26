@@ -11,7 +11,6 @@
 //Замечание. Человек мог не дожить до 18-летия, либо умереть в день 18-летия. В этих случаях принимать участие
 // в собраниях он не мог.
 
-
 #include <iostream>
 #include <cassert>
 #include <sstream>
@@ -104,7 +103,8 @@ void MaxContemporaries<T, IsLess>::Add(const T& birth, const T& death) {
         buffer[real_size] = coming_of_age;
         ++real_size;
 
-        if (is_less(coming_of_death, coming_of_old)) {
+        if (is_less(coming_of_death, coming_of_old)) {    //  если человеку было больше восьмидесяти,
+                                                          // то добавляем день восьмидесятилетия
             buffer[real_size] = coming_of_death;
         } else {
             buffer[real_size] = coming_of_old;

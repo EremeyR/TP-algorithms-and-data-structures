@@ -76,6 +76,7 @@ private:
     size_t del_count;
 
     void growTable();
+    size_t GetDoubleHash(size_t hash1, size_t hash2, size_t iterator);
 };
 
 template<class T, class H1, class H2>
@@ -98,13 +99,10 @@ bool  HashTable<T, H1, H2>::Has( const T& data ) const {
         return true;
     } else {
         size_t absHash2 = hasher2(data);
-        size_t hash2 = absHash2 % table.size() / 2;
-        if (hash2 % 2 == 0) {
-            ++hash2;
-        }
+        size_t hash2 = absHash2 % table.size() * 2 + 1;
 
         size_t i = 1;
-        while (true) {
+        while (i < table.size()) {
             if (table[(hash1 + i * hash2) % table.size()].state == 'E') {
                 return false;
             } else if (table[(hash1 + i * hash2) % table.size()].state == 'T'
@@ -114,6 +112,7 @@ bool  HashTable<T, H1, H2>::Has( const T& data ) const {
             ++i;
         }
     }
+    return false;
 }
 
 template<class T, class H1, class H2>
@@ -143,10 +142,7 @@ bool  HashTable<T, H1, H2>::Add( const T& data )
         }
 
         size_t absHash2 = hasher2(data);
-        size_t hash2 = absHash2 % table.size() / 2;
-        if (hash2 % 2 == 0) {
-            ++hash2;
-        }
+        size_t hash2 = absHash2 % table.size() * 2 + 1;
 
         size_t i = 1;
         while (table[(hash1 + i * hash2) % table.size()].state != 'E') {
@@ -193,10 +189,7 @@ bool HashTable<T, H1, H2>::Delete( const T& data )
         return true;
     } else {
         size_t absHash2 = hasher2(data);
-        size_t hash2 = absHash2 % table.size() / 2;
-        if (hash2 % 2 == 0) {
-            ++hash2;
-        }
+        size_t hash2 = absHash2 % table.size() * 2 + 1;
 
         size_t i = 1;
         while (true) {
@@ -221,22 +214,28 @@ void HashTable<T, H1, H2>::growTable() {
         if (cell.state == 'T'){
             size_t new_hash1 = cell.hash1 % new_table.size();
             if (new_table[new_hash1].state == 'E') {
-                new_table [new_hash1] = cell;
+                new_table [new_hash1] = std::move(cell);
             } else {
                 if (cell.hash2 == 0) {
                     cell.hash2 = hasher2(cell.data);
                 }
-                size_t new_hash2 = cell.hash2 % new_table.size() / 2 + 1;
+                size_t new_hash2 = cell.hash2 % new_table.size() * 2 + 1;
+
                 size_t i = 1;
                 while (new_table[(new_hash1 + i * new_hash2) % new_table.size()].state != 'E') {
                     ++i;
                 }
-                new_table [(new_hash1 + i * new_hash2) % new_table.size()] = cell;
+                new_table [(new_hash1 + i * new_hash2) % new_table.size()] = std::move(cell);
             }
         }
     }
     table = std::move(new_table);
     del_count = 0;
+}
+
+template<class T, class H1, class H2>
+size_t HashTable<T, H1, H2>::GetDoubleHash(size_t hash1, size_t hash2, size_t iterator) {
+    return (hash1 + iterator * (hash2 * 2 + 1)) % table.size();
 }
 
 int run(std::istream& input, std::ostream& output) {
@@ -264,69 +263,69 @@ int run(std::istream& input, std::ostream& output) {
     return 0;
 }
 
-//void Tests() {
-//    {
-//        std::stringstream input;
-//        std::stringstream output;
-//        input << "+ 3";
-//        run(input, output);
-//        assert(output.str() == "OK\n");
-//    }
-//
-//    {
-//        std::stringstream input;
-//        std::stringstream output;
-//        input << "+3 +3";
-//        run(input, output);
-//        assert(output.str() == "OK\nFAIL\n");
-//    }
-//
-//    {
-//        std::stringstream input;
-//        std::stringstream output;
-//        input << "+1 +2 +3 +4 +5 +6 +7 +8 + 9 +10";
-//        run(input, output);
-//        assert(output.str() == "OK\nOK\nOK\nOK\nOK\nOK\nOK\nOK\nOK\nOK\n");
-//    }
-//
-//    {
-//        std::stringstream input;
-//        std::stringstream output;
-//        input << "+1 +2 +3 +4 +5 +7 +8 + 9 +10 -6";
-//        run(input, output);
-//        assert(output.str() == "OK\nOK\nOK\nOK\nOK\nOK\nOK\nOK\nOK\nFAIL\n");
-//    }
-//
-//    {
-//        std::stringstream input;
-//        std::stringstream output;
-//        input << "+1 +2 +3 +4 +5 +7 +8 + 9 +10 -6 +6";
-//        run(input, output);
-//        assert(output.str() == "OK\nOK\nOK\nOK\nOK\nOK\nOK\nOK\nOK\nFAIL\nOK\n");
-//    }
-//
-//    {
-//        std::stringstream input;
-//        std::stringstream output;
-//        input << "+1 +2 +3 +4 +5 +7 +8 + 9 +10 -6 +6 ?6 -6 ?6";
-//        run(input, output);
-//        assert(output.str() == "OK\nOK\nOK\nOK\nOK\nOK\nOK\nOK\nOK\nFAIL\nOK\nOK\nOK\nFAIL\n");
-//    }
-//    {
-//        std::stringstream input;
-//        std::stringstream output;
-//        input << "+1 +2 +3 +4 +5 +7 +8 + 9 +10 -6 +6 ?6 -6 ?6 ?5 ?4 ?3 ?2 ?1";
-//        run(input, output);
-//        assert(output.str() == "OK\nOK\nOK\nOK\nOK\nOK\nOK\nOK\nOK\nFAIL\nOK\nOK\nOK\nFAIL\nOK\nOK\nOK\nOK\nOK\n");
-//    }
-//    {
-//        std::stringstream input;
-//        std::stringstream output;
-//        input << "+1 +2 +3 +4 +5 +7 +8 + 9 +10 -6 +6 ?6 -6 ?6 ?6 ?6 ?6 ?6 ?6";
-//        run(input, output);
-//        assert(output.str() == "OK\nOK\nOK\nOK\nOK\nOK\nOK\nOK\nOK\nFAIL\nOK\nOK\nOK\nFAIL\nFAIL\nFAIL\nFAIL\nFAIL\nFAIL\n");
-//    }
-//}
+void Tests() {
+    {
+        std::stringstream input;
+        std::stringstream output;
+        input << "+ 3";
+        run(input, output);
+        assert(output.str() == "OK\n");
+    }
+
+    {
+        std::stringstream input;
+        std::stringstream output;
+        input << "+3 +3";
+        run(input, output);
+        assert(output.str() == "OK\nFAIL\n");
+    }
+
+    {
+        std::stringstream input;
+        std::stringstream output;
+        input << "+1 +2 +3 +4 +5 +6 +7 +8 + 9 +10";
+        run(input, output);
+        assert(output.str() == "OK\nOK\nOK\nOK\nOK\nOK\nOK\nOK\nOK\nOK\n");
+    }
+
+    {
+        std::stringstream input;
+        std::stringstream output;
+        input << "+1 +2 +3 +4 +5 +7 +8 + 9 +10 -6";
+        run(input, output);
+        assert(output.str() == "OK\nOK\nOK\nOK\nOK\nOK\nOK\nOK\nOK\nFAIL\n");
+    }
+
+    {
+        std::stringstream input;
+        std::stringstream output;
+        input << "+1 +2 +3 +4 +5 +7 +8 + 9 +10 -6 +6";
+        run(input, output);
+        assert(output.str() == "OK\nOK\nOK\nOK\nOK\nOK\nOK\nOK\nOK\nFAIL\nOK\n");
+    }
+
+    {
+        std::stringstream input;
+        std::stringstream output;
+        input << "+1 +2 +3 +4 +5 +7 +8 + 9 +10 -6 +6 ?6 -6 ?6";
+        run(input, output);
+        assert(output.str() == "OK\nOK\nOK\nOK\nOK\nOK\nOK\nOK\nOK\nFAIL\nOK\nOK\nOK\nFAIL\n");
+    }
+    {
+        std::stringstream input;
+        std::stringstream output;
+        input << "+1 +2 +3 +4 +5 +7 +8 + 9 +10 -6 +6 ?6 -6 ?6 ?5 ?4 ?3 ?2 ?1";
+        run(input, output);
+        assert(output.str() == "OK\nOK\nOK\nOK\nOK\nOK\nOK\nOK\nOK\nFAIL\nOK\nOK\nOK\nFAIL\nOK\nOK\nOK\nOK\nOK\n");
+    }
+    {
+        std::stringstream input;
+        std::stringstream output;
+        input << "+1 +2 +3 +4 +5 +7 +8 + 9 +10 -6 +6 ?6 -6 ?6 ?6 ?6 ?6 ?6 ?6";
+        run(input, output);
+        assert(output.str() == "OK\nOK\nOK\nOK\nOK\nOK\nOK\nOK\nOK\nFAIL\nOK\nOK\nOK\nFAIL\nFAIL\nFAIL\nFAIL\nFAIL\nFAIL\n");
+    }
+}
 
 int main() {
     //Tests();

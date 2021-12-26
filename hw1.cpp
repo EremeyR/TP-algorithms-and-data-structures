@@ -132,6 +132,7 @@ bool  HashTable<T, H1, H2>::Add( const T& data )
         table[hash1].state = 'T';
         table[hash1].data = data;
         table[hash1].hash1 = absHash1;
+        table[first_del_cell].hash2 = hasher2(data);
 
     } else if (table[hash1].state == 'T' && table[hash1].data == data) {
             return false;
@@ -145,12 +146,12 @@ bool  HashTable<T, H1, H2>::Add( const T& data )
         size_t hash2 = absHash2 % table.size() * 2 + 1;
 
         size_t i = 1;
-        while (table[(hash1 + i * hash2) % table.size()].state != 'E') {
+        while (table[(hash1 + i * hash2) % table.size()].state != 'E' && i < table.size()) {
             if (table[(hash1 + i * hash2) % table.size()].state == 'D' &&
                 !is_write_to_del) {
                 first_del_cell = hash1 + i * hash2;
                 is_write_to_del = true;
-            } else if (table[hash1].state == 'T' &&
+            } else if (table[(hash1 + i * hash2) % table.size()].state == 'T' &&
                        table[(hash1 + i * hash2) % table.size()].data == data) {
                 return false;
             }
@@ -192,8 +193,8 @@ bool HashTable<T, H1, H2>::Delete( const T& data )
         size_t hash2 = absHash2 % table.size() * 2 + 1;
 
         size_t i = 1;
-        while (true) {
-            if (table[(hash1 + i * hash2) % table.size()].state == 'E') {
+        while (i < table.size()) {
+            if (table[(hash1 + i * hash2) % table.size()].state == 'E' && i < table.size()) {
                 return false;
             } else if (table[(hash1 + i * hash2) % table.size()].state == 'T'
                        && table[(hash1 + i * hash2) % table.size()].data == data) {
@@ -225,11 +226,11 @@ void HashTable<T, H1, H2>::growTable() {
                 while (new_table[(new_hash1 + i * new_hash2) % new_table.size()].state != 'E') {
                     ++i;
                 }
-                new_table [(new_hash1 + i * new_hash2) % new_table.size()] = std::move(cell);
+                new_table [(new_hash1 + i * new_hash2) % new_table.size()] = cell;
             }
         }
     }
-    table = std::move(new_table);
+    table = new_table;
     del_count = 0;
 }
 
@@ -256,8 +257,6 @@ int run(std::istream& input, std::ostream& output) {
             case '?':
                 output << (table.Has( data ) ? "OK" : "FAIL") << std::endl;
                 break;
-            default:
-                assert( false );
         }
     }
     return 0;
@@ -325,10 +324,17 @@ void Tests() {
         run(input, output);
         assert(output.str() == "OK\nOK\nOK\nOK\nOK\nOK\nOK\nOK\nOK\nFAIL\nOK\nOK\nOK\nFAIL\nFAIL\nFAIL\nFAIL\nFAIL\nFAIL\n");
     }
+    {
+        std::stringstream input;
+        std::stringstream output;
+        input << "+1 ";
+        run(input, output);
+        assert(output.str() == "OK\nOK\nOK\nOK\nOK\nOK\nOK\nOK\nOK\nFAIL\nOK\nOK\nOK\nFAIL\nOK\nOK\nOK\nOK\nOK\n");
+    }
 }
 
 int main() {
-    //Tests();
-    run(std::cin, std::cout);
+    Tests();
+    //run(std::cin, std::cout);
     return 0;
 }

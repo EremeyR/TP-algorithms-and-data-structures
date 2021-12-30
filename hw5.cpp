@@ -23,6 +23,32 @@ struct Event {
 
     bool factor = false;  // true - достижение совершенолетия,
     // false - достижение 80-тилетия / смерть.
+
+
+};
+
+template<class T>
+class Vector{
+public:
+    Vector() = default;
+    explicit Vector(int size);
+    ~Vector() {delete[] buffer;}
+
+    Vector(const Vector&);
+    Vector& operator = (const Vector&) = delete;
+
+
+    void Add(const T& value, int32_t id = 0);
+    T& operator[] (int i) const;
+    int32_t Size() const;
+
+private:
+    T* buffer = nullptr;
+    int32_t buffers_size = 0;
+    int32_t real_size = 0;
+
+private:
+    void GrowBuffer();
 };
 
 template <class T>
@@ -63,73 +89,10 @@ bool IsDateLess<T>::operator()(const T &l, const T &r) const {
     return l.factor < r.factor;   // считаем, что смерть наступает раньше рождения
 }
 
-template <class T, class IsLess = IsLessDefault<T>>
-class MaxContemporaries {
-public:
-    explicit MaxContemporaries(const IsDateLess<T> &is_less = IsDateLess<T>());
-    MaxContemporaries(const MaxContemporaries &) = delete;
-    ~MaxContemporaries();
 
-    MaxContemporaries &operator=(const MaxContemporaries &) = delete;
-
-    void Add(const T& birth, const T& death);
-    size_t GetResult();
-
-private:
-    IsLess is_less = IsDateLess<Event<size_t>>();
-
-    T* buffer = nullptr;            //  буфер для событий
-    T* buffer_for_sort = nullptr;   // буфер для сортировки
-    size_t buffers_size = 0;        // размер буфера
-    size_t real_size = 0;           // количество событий
-
-    void GrowBuffer();
-
-    void MergeSort(T* array, size_t array_size);
-    void Merge(const T* array1, size_t array1_size, const T* array2, size_t array2_size);
-};
 
 template<class T, class IsLess>
-void MaxContemporaries<T, IsLess>::Add(const T& birth, const T& death) {
-    
-    T coming_of_age = {birth.year + 18, birth.month, birth.day, true};
-    T coming_of_old = {birth.year + 80, birth.month, birth.day, false};
-    T coming_of_death = {death.year, death.month, death.day, false};
-    
-    if (!is_less(coming_of_death, coming_of_age)) {  //  добавляем только доживших до 18
-        if(real_size == buffers_size) {
-            GrowBuffer();
-        }
-        buffer[real_size] = coming_of_age;
-        ++real_size;
-
-        if (is_less(coming_of_death, coming_of_old)) {    //  если человеку было больше восьмидесяти,
-                                                          // то добавляем день восьмидесятилетия
-            buffer[real_size] = coming_of_death;
-        } else {
-            buffer[real_size] = coming_of_old;
-        }
-        ++real_size;
-    }
-}
-
-template<class T, class IsLess>
-size_t MaxContemporaries<T, IsLess>::GetResult() {
-    MergeSort(buffer, real_size);
-
-    int64_t result = 0;
-    int64_t current_value = 0;
-    for (int i = 0; i < real_size; ++i) {
-        current_value += buffer[i].factor ? 1 : -1;
-        if (current_value > result) {
-            result = current_value;
-        }
-    }
-    return result;
-}
-
-template<class T, class IsLess>
-void MaxContemporaries<T, IsLess>::Merge(const T *array1, size_t array1_size, const T *array2, size_t array2_size) {
+void Merge(T *buffer_for_sort, const T *array1, size_t array1_size, const T *array2, size_t array2_size, const IsLess& is_less) {
     if(array1_size == 0) { // если первый массив пустой
         for (int i = 0; i < array2_size; ++i) {
             buffer_for_sort[i] = array2[i];
@@ -168,37 +131,20 @@ void MaxContemporaries<T, IsLess>::Merge(const T *array1, size_t array1_size, co
 }
 
 template<class T, class IsLess>
-void MaxContemporaries<T, IsLess>::GrowBuffer() {
-    size_t new_size = (buffers_size == 0) ? 2 : buffers_size * 2;
-    T* new_buffer = new T[new_size];
-    T* new_buffer_for_sort = new T[new_size];
-
-    for (size_t i = 0; i < buffers_size; ++i) {
-        new_buffer[i] = buffer[i];
-    }
-
-    delete[] buffer;
-    delete[] buffer_for_sort;
-
-    buffer = new_buffer;
-    buffer_for_sort = new_buffer_for_sort;
-    buffers_size = new_size;
-}
-
-template<class T, class IsLess>
-void MaxContemporaries<T, IsLess>::MergeSort(T *array, size_t array_size) {
+void MergeSort(T *buffer_for_sort, T *array, size_t array_size, const IsLess& is_less) {
     if (array_size <= 1) {
         return;
     }
+
 
     size_t left_array_size = array_size / 2;
     size_t right_array_size = array_size - left_array_size;
 
     // глубина рекурсии меньше 1000 при длине массива < 2^1000 (~10^300)
-    MergeSort(array, left_array_size);
-    MergeSort(array + left_array_size, right_array_size);
+    MergeSort(buffer_for_sort, array, left_array_size, is_less);
+    MergeSort(buffer_for_sort, array + left_array_size, right_array_size, is_less);
 
-    Merge(array, left_array_size, array + left_array_size, right_array_size);
+    Merge(buffer_for_sort, array, left_array_size, array + left_array_size, right_array_size, is_less);
 
     for (size_t i = 0; i < array_size; ++i) {
         array[i] = buffer_for_sort[i];
@@ -206,24 +152,56 @@ void MaxContemporaries<T, IsLess>::MergeSort(T *array, size_t array_size) {
 }
 
 template<class T, class IsLess>
-MaxContemporaries<T, IsLess>::~MaxContemporaries() {
-    delete[] buffer;
-    delete[] buffer_for_sort;
+Vector<T> CorrectVector(const Vector<T>& vector, const IsLess& is_less) {
+    Vector<T> corrected_vector;
+
+    for (int i = 0; i < vector.Size(); i += 2) {
+        T coming_of_age = {vector[i].year + 18, vector[i].month, vector[i].day, true};
+        T coming_of_old = {vector[i].year + 80, vector[i].month, vector[i].day, false};
+        T coming_of_death = {vector[i + 1].year, vector[i + 1].month, vector[i + 1].day, false};
+
+        if (!is_less(coming_of_death, coming_of_age)) {  //  добавляем только доживших до 18
+            corrected_vector.Add(coming_of_age);
+
+            if (is_less(coming_of_death, coming_of_old)) {    //  если человеку было больше восьмидесяти,
+                // то добавляем день восьмидесятилетия
+                corrected_vector.Add(coming_of_death);
+            } else {
+                corrected_vector.Add(coming_of_old);
+            }
+        }
+    }
+    return corrected_vector;
 }
 
-template<class T, class IsLess>
-MaxContemporaries<T, IsLess>::MaxContemporaries(const IsDateLess<T> &is_less) :
-    is_less(is_less){}
+template<class T, class IsLess = IsLessDefault<T>>
+size_t GetMaxContemporaries(const Vector<T>& vector, const IsLess& is_less = IsLessDefault<T>()) {
+    Vector<T> corrected_vector = CorrectVector(vector, is_less);
+    Vector<T> vector_for_sort(corrected_vector.Size());
+
+    MergeSort(&vector_for_sort[0], &corrected_vector[0], corrected_vector.Size(), is_less);
+
+    int64_t result = 0;
+    int64_t current_value = 0;
+    for (int i = 0; i < corrected_vector.Size(); ++i) {
+        current_value += corrected_vector[i].factor ? 1 : -1;
+        if (current_value > result) {
+            result = current_value;
+        }
+    }
+    return result;
+}
 
 int run(std::istream& input, std::ostream& output) {
     IsDateLess<Event<size_t>> is_date_less;
-    MaxContemporaries<Event<size_t>, IsDateLess<Event<size_t>>> max_contemporaries(is_date_less);
 
     size_t number_of_persons = 0;
     input >> number_of_persons;
 
     Event<size_t> birth;
     Event<size_t> death;
+
+    Vector<Event<size_t>> events;
 
     for (size_t i = 0; i < number_of_persons; ++i) {
         input >> birth.day;
@@ -234,10 +212,10 @@ int run(std::istream& input, std::ostream& output) {
         input >> death.month;
         input >> death.year;
 
-        max_contemporaries.Add(birth, death);
+        events.Add(birth);
+        events.Add(death);
     }
-
-    output << max_contemporaries.GetResult();
+    output << GetMaxContemporaries(events, is_date_less);
     return 0;
 }
 void Tests() {
@@ -393,7 +371,58 @@ void Tests() {
 }
 
 int main() {
-    Tests();
-    //run(std::cin, std::cout);
+
+    //Tests();
+    run(std::cin, std::cout);
     return 0;
+}
+
+template<class T>
+void Vector<T>::Add(const T &value, int32_t id) {
+    if (real_size == buffers_size) {
+        GrowBuffer();
+    }
+    buffer[real_size] = value;
+    ++real_size;
+}
+
+template<class T>
+void Vector<T>::GrowBuffer() {
+    int32_t new_size = (buffers_size == 0) ? 1 : buffers_size * 2;
+    T* new_buffer = new T[new_size];
+
+    for (int32_t i = 0; i < buffers_size; ++i) {
+        new_buffer[i] = buffer[i];
+    }
+
+    delete[] buffer;
+    buffer = new_buffer;
+    buffers_size = new_size;
+}
+
+template<class T>
+int32_t Vector<T>::Size() const{
+    return real_size;
+}
+
+template<class T>
+T &Vector<T>::operator[](int i) const{
+    return buffer[i];
+}
+
+template<class T>
+Vector<T>::Vector(const Vector &vector) {
+    this->buffer = new T[vector.buffers_size];
+    this->buffers_size = vector.buffers_size;
+    this->real_size = vector.real_size;
+
+    for (int i = 0; i < vector.real_size; ++i) {
+        this->buffer[i] = vector.buffer[i];
+    }
+}
+
+template<class T>
+Vector<T>::Vector(int size) {
+    buffers_size = size;
+    buffer = new T[size];
 }

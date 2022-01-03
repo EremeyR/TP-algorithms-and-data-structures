@@ -13,7 +13,8 @@
 #include<vector>
 #include<string>
 #include <sstream>
-#include<assert.h>
+#include <fstream>
+#include<cassert>
 
 using std::vector;
 using std::string;
@@ -149,7 +150,7 @@ bool  HashTable<T, H1, H2>::Add( const T& data )
         while (table[(hash1 + i * hash2) % table.size()].state != 'E' && i < table.size()) {
             if (table[(hash1 + i * hash2) % table.size()].state == 'D' &&
                 !is_write_to_del) {
-                first_del_cell = hash1 + i * hash2;
+                first_del_cell = (hash1 + i * hash2)  % table.size();
                 is_write_to_del = true;
             } else if (table[(hash1 + i * hash2) % table.size()].state == 'T' &&
                        table[(hash1 + i * hash2) % table.size()].data == data) {
@@ -249,7 +250,7 @@ int run(std::istream& input, std::ostream& output) {
     while( input >> operation >> data ) {
         switch( operation ) {
             case '+':
-                output<< (table.Add( data ) ? "OK" : "FAIL") << std::endl;
+                output << (table.Add( data ) ? "OK" : "FAIL") << std::endl;
                 break;
             case '-':
                 output << (table.Delete( data ) ? "OK" : "FAIL") << std::endl;
@@ -263,73 +264,79 @@ int run(std::istream& input, std::ostream& output) {
 }
 
 void Tests() {
+//    {
+//        std::stringstream input;
+//        std::stringstream output;
+//        input << "+ 3";
+//        run(input, output);
+//        assert(output.str() == "OK\n");
+//    }
+//
+//    {
+//        std::stringstream input;
+//        std::stringstream output;
+//        input << "+3 +3";
+//        run(input, output);
+//        assert(output.str() == "OK\nFAIL\n");
+//    }
+//
+//    {
+//        std::stringstream input;
+//        std::stringstream output;
+//        input << "+1 +2 +3 +4 +5 +6 +7 +8 + 9 +10";
+//        run(input, output);
+//        assert(output.str() == "OK\nOK\nOK\nOK\nOK\nOK\nOK\nOK\nOK\nOK\n");
+//    }
+//
+//    {
+//        std::stringstream input;
+//        std::stringstream output;
+//        input << "+1 +2 +3 +4 +5 +7 +8 + 9 +10 -6";
+//        run(input, output);
+//        assert(output.str() == "OK\nOK\nOK\nOK\nOK\nOK\nOK\nOK\nOK\nFAIL\n");
+//    }
+//
+//    {
+//        std::stringstream input;
+//        std::stringstream output;
+//        input << "+1 +2 +3 +4 +5 +7 +8 + 9 +10 -6 +6";
+//        run(input, output);
+//        assert(output.str() == "OK\nOK\nOK\nOK\nOK\nOK\nOK\nOK\nOK\nFAIL\nOK\n");
+//    }
+//
+//    {
+//        std::stringstream input;
+//        std::stringstream output;
+//        input << "+1 +2 +3 +4 +5 +7 +8 + 9 +10 -6 +6 ?6 -6 ?6";
+//        run(input, output);
+//        assert(output.str() == "OK\nOK\nOK\nOK\nOK\nOK\nOK\nOK\nOK\nFAIL\nOK\nOK\nOK\nFAIL\n");
+//    }
+//    {
+//        std::stringstream input;
+//        std::stringstream output;
+//        input << "+1 +2 +3 +4 +5 +7 +8 + 9 +10 -6 +6 ?6 -6 ?6 ?5 ?4 ?3 ?2 ?1";
+//        run(input, output);
+//        assert(output.str() == "OK\nOK\nOK\nOK\nOK\nOK\nOK\nOK\nOK\nFAIL\nOK\nOK\nOK\nFAIL\nOK\nOK\nOK\nOK\nOK\n");
+//    }
+//    {
+//        std::stringstream input;
+//        std::stringstream output;
+//        input << "+1 +2 +3 +4 +5 +7 +8 + 9 +10 -6 +6 ?6 -6 ?6 ?6 ?6 ?6 ?6 ?6";
+//        run(input, output);
+//        assert(output.str() == "OK\nOK\nOK\nOK\nOK\nOK\nOK\nOK\nOK\nFAIL\nOK\nOK\nOK\nFAIL\nFAIL\nFAIL\nFAIL\nFAIL\nFAIL\n");
+//    }
+//    {
+//        std::stringstream input;
+//        std::stringstream output;
+//        input << "+1 ";
+//        run(input, output);
+//        assert(output.str() == "OK\n");
+//    }
     {
-        std::stringstream input;
-        std::stringstream output;
-        input << "+ 3";
+        std::ifstream input("../006");
+        std::ofstream output("../ttt1");
         run(input, output);
-        assert(output.str() == "OK\n");
-    }
 
-    {
-        std::stringstream input;
-        std::stringstream output;
-        input << "+3 +3";
-        run(input, output);
-        assert(output.str() == "OK\nFAIL\n");
-    }
-
-    {
-        std::stringstream input;
-        std::stringstream output;
-        input << "+1 +2 +3 +4 +5 +6 +7 +8 + 9 +10";
-        run(input, output);
-        assert(output.str() == "OK\nOK\nOK\nOK\nOK\nOK\nOK\nOK\nOK\nOK\n");
-    }
-
-    {
-        std::stringstream input;
-        std::stringstream output;
-        input << "+1 +2 +3 +4 +5 +7 +8 + 9 +10 -6";
-        run(input, output);
-        assert(output.str() == "OK\nOK\nOK\nOK\nOK\nOK\nOK\nOK\nOK\nFAIL\n");
-    }
-
-    {
-        std::stringstream input;
-        std::stringstream output;
-        input << "+1 +2 +3 +4 +5 +7 +8 + 9 +10 -6 +6";
-        run(input, output);
-        assert(output.str() == "OK\nOK\nOK\nOK\nOK\nOK\nOK\nOK\nOK\nFAIL\nOK\n");
-    }
-
-    {
-        std::stringstream input;
-        std::stringstream output;
-        input << "+1 +2 +3 +4 +5 +7 +8 + 9 +10 -6 +6 ?6 -6 ?6";
-        run(input, output);
-        assert(output.str() == "OK\nOK\nOK\nOK\nOK\nOK\nOK\nOK\nOK\nFAIL\nOK\nOK\nOK\nFAIL\n");
-    }
-    {
-        std::stringstream input;
-        std::stringstream output;
-        input << "+1 +2 +3 +4 +5 +7 +8 + 9 +10 -6 +6 ?6 -6 ?6 ?5 ?4 ?3 ?2 ?1";
-        run(input, output);
-        assert(output.str() == "OK\nOK\nOK\nOK\nOK\nOK\nOK\nOK\nOK\nFAIL\nOK\nOK\nOK\nFAIL\nOK\nOK\nOK\nOK\nOK\n");
-    }
-    {
-        std::stringstream input;
-        std::stringstream output;
-        input << "+1 +2 +3 +4 +5 +7 +8 + 9 +10 -6 +6 ?6 -6 ?6 ?6 ?6 ?6 ?6 ?6";
-        run(input, output);
-        assert(output.str() == "OK\nOK\nOK\nOK\nOK\nOK\nOK\nOK\nOK\nFAIL\nOK\nOK\nOK\nFAIL\nFAIL\nFAIL\nFAIL\nFAIL\nFAIL\n");
-    }
-    {
-        std::stringstream input;
-        std::stringstream output;
-        input << "+1 ";
-        run(input, output);
-        assert(output.str() == "OK\nOK\nOK\nOK\nOK\nOK\nOK\nOK\nOK\nFAIL\nOK\nOK\nOK\nFAIL\nOK\nOK\nOK\nOK\nOK\n");
     }
 }
 
